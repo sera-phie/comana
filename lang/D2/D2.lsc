@@ -1,0 +1,18 @@
+# IPA
+Class c {b, ɾ, ɡ, s, t, k, tː, c, n, w, m, j, p, l}
+Class v {iː, uː, ɪ, ɔ, ɑ, æ, aː, eː, oː, ə}
+
+v:
+    {iː, uː, aː, eː, oː} => {eː, uː, aː, iː, uː}
+    {ɪ, ɔ, ɑ, æ, ə} => {ɛ, ɑ, ɔ, ɛ, ɛ}
+
+c:
+    c => t
+    tː => nt
+    w => ɡʷ
+    {k, t} => ʔ / _ $
+    nn => ɡn
+    then: ɾ => n / _ {d, ɡ, n, t, k}
+    then: {ns, ms} => {dz, bz}
+    then: s => z / {b, d, g} _
+    then: m => b / _ @c
