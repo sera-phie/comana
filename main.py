@@ -43,6 +43,17 @@ abbrDict = {
     "getParent": "Get Parent Language",
     "setParent": "Set Parent Language",
     "vwTree": "View Language Family Tree",
+    "evlWrdTr": "Evolve Word Tree",
+    "prtWrdTr": "Print Word Tree",
+    "nLng": "Node Language",
+    "nIpa": "Node IPA",
+    "nOrt": "Node Orthography",
+    "pref": "Prefix",
+    "isLst": "Is Last",
+    "mkr": "Marker",
+    "cPref": "Child Prefix",
+    "isLChld": "Is Last Child",
+    "evIpa": "Evolved IPA",
     "dirNm": "Directory Name",
     "hdrLst": "Header List",
     "pdmHdr": "Paradigm Header List",
@@ -1069,11 +1080,71 @@ def vwTree():
             
     input(f"{Col.prm}[Enter] to continue...{Col.rst}")
 
+def evlWrdTr(lngNm):
+    clrScr()
+    print(f"{Col.hdr}--- Evolve Word Tree ({lngNm}) ---{Col.rst}\n")
+    c = input(f"{Col.prm}Use (1) Dictionary word or (2) Custom word? {Col.rst}").strip()
+    ipa = ""
+    
+    if c == '1':
+        q = input(f"{Col.prm}Search term: {Col.rst}").strip().lower()
+        csvDat = ldCsv(lngNm)
+        resLst = [(i, r) for i, r in enumerate(csvDat) if q in r["Lemma"].lower() or q in r["Gloss"].lower() or q in r["IPA"].lower()]
+        if not resLst:
+            print(f"{Col.err}No matches.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            return
+        print()
+        for idx, (i, r) in enumerate(resLst):
+            print(f"{Col.prm}{idx}.{Col.rst} {Col.hdr}{r['Lemma']}{Col.rst} /{Col.ipa}{r['IPA']}{Col.rst}/ - {Col.ok}{r['Gloss']}{Col.rst}")
+        sc = input(f"\n{Col.prm}Choice: {Col.rst}").strip()
+        try: 
+            ipa = resLst[int(sc)][1]["IPA"]
+        except:
+            print(f"{Col.err}Invalid.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            return
+    elif c == '2':
+        ipa = input(f"{Col.prm}Enter IPA (or CXS): {Col.rst}").strip()
+        if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
+    else:
+        return
+        
+    if not ipa: return
+    
+    showIpa = input(f"{Col.prm}Show IPA in tree? (y/n): {Col.rst}").strip().lower() == 'y'
+
+    print("\n" + "="*40 + "\n")
+    
+    def prtWrdTr(nLng, nIpa, pref="", isLst=True):
+        nOrt = getOrt(nLng, nIpa)
+        dispStr = f"{nOrt}"
+        if showIpa:
+            dispStr += f" /{Col.ipa}{nIpa}{Col.rst}/"
+
+        if pref == "":
+            print(f"{Col.hdr}*{dispStr}{Col.rst}")
+            cPref = "    "
+        else:
+            mkr = "└── " if isLst else "├── "
+            print(f"{pref}{mkr}{Col.hdr}{dispStr}{Col.rst}")
+            cPref = pref + ("    " if isLst else "│   ")
+            
+        daus = getDaus(nLng)
+        for i, d in enumerate(daus):
+            evIpa = applyLx(d, [nIpa])[0]
+            isLChld = (i == len(daus) - 1)
+            prtWrdTr(d, evIpa, cPref, isLChld)
+            
+    prtWrdTr(lngNm, ipa)
+    print("\n" + "="*40 + "\n")
+    input(f"{Col.prm}[Enter] to continue...{Col.rst}")
+
 def wrkSpc(lngNm):
     while True:
         clrScr()
         print(f"{Col.hdr}=== Workspace: {lngNm} ==={Col.rst}\n")
-        mnuChc = input(f"{Col.prm}(a)dd, (e)dit, (s)earch, (v)iew, s(y)nc, (o)rtho, (l)exurgy, (p)aradigm, (t)ranslate, (c)onfig, (b)ack: {Col.rst}").strip().lower()
+        mnuChc = input(f"{Col.prm}(a)dd, (e)dit, (s)earch, (v)iew, s(y)nc, (o)rtho, (l)exurgy, (p)aradigm, (t)ranslate, (w)ord tree, (c)onfig, (b)ack: {Col.rst}").strip().lower()
         if mnuChc == 'a': addWrd(lngNm)
         elif mnuChc == 'e': edtWrd(lngNm)
         elif mnuChc == 's': srcWrd(lngNm)
@@ -1083,6 +1154,7 @@ def wrkSpc(lngNm):
         elif mnuChc == 'l': runLx(lngNm)
         elif mnuChc == 'p': pdmMnu(lngNm)
         elif mnuChc == 't': trnSltr(lngNm)
+        elif mnuChc == 'w': evlWrdTr(lngNm)
         elif mnuChc == 'c': setMnu()
         elif mnuChc == 'b': break
 
