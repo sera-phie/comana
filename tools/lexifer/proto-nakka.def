@@ -1,0 +1,6 @@
+C = x:1 p:1 t:1 k:1 w:1 r:1 rr:1 q:1 pp:1 tt:1 kk:1 qq:1 š:1 s:1 n:1 m:1 č:1 čč:1
+V = a:1 u:1 i:1
+
+random-rate: 50
+
+words: CVC? CVCVC? CVCVCVC?
