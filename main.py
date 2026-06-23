@@ -6,6 +6,7 @@ import subprocess
 import sys
 import re
 import uuid
+import shutil
 
 abbrDict = {
     "clrScr": "Clear Screen",
@@ -811,8 +812,12 @@ def runLx(lngNm):
         print(f"{Col.hdr}Opening {lsc} in Notepad++...{Col.rst}")
         subprocess.run([exe_cmd, lsc])
     else:
-        print(f"{Col.hdr}Opening {lsc} in code...{Col.rst}")
-        subprocess.run(["code", "--wait", lsc])
+        if shutil.which("code"):
+            print(f"{Col.hdr}Opening {lsc} in code...{Col.rst}")
+            subprocess.run(["code", "--wait", lsc])
+        else:
+            print(f"{Col.hdr}Opening {lsc} in neovim...{Col.rst}")
+            subprocess.run(["nvim", lsc])
     
     with open(lsc, "r", encoding="utf-8") as f:
         lns = f.readlines()
