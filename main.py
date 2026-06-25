@@ -27,6 +27,7 @@ abbrDict = {
     "aplyMut": "Apply Mutation",
     "trnSltr": "Translator",
     "addWrd": "Add Word",
+    "genWrd": "Generate Word",
     "srcWrd": "Search Word",
     "edtWrd": "Edit Word",
     "vwWrd": "View Words",
@@ -46,6 +47,8 @@ abbrDict = {
     "vwTree": "View Language Family Tree",
     "evlWrdTr": "Evolve Word Tree",
     "prtWrdTr": "Print Word Tree",
+    "renLng": "Rename Language",
+    "delLng": "Delete Language",
     "nLng": "Node Language",
     "nIpa": "Node IPA",
     "nOrt": "Node Orthography",
@@ -129,12 +132,12 @@ c2iMap = {
     "|\\": "ǀ", "|\\|\\": "ǁ", "!\\": "ǃ", "=\\": "ǂ", "-\\": "‿",
     "4": "ɾ", "5": "ɫ", "1": "ɨ", "2": "ø", "b_<": "ɓ", "d_<": "ɗ",
     "g_<": "ɠ", "G\\_<": "ʛ", "p\\": "ɸ", "B\\": "ʙ", "d\\": "ɖ",
-    "_>": "ʼ",
     "J\\": "ɟ", "K\\": "ɮ", "G\\": "ɢ", "N\\": "ɴ", "X\\": "ħ",
     "R\\": "ʀ", "H\\": "ʜ", "?": "ʔ", "O\\": "ʘ", "r\\`": "ɻ",
     "L\\": "ʟ", "M\\": "ɰ", "~": "̃", ":": "ː", ":\\": "ˑ", "=": "̩",
     "_j": "ʲ", "_w": "ʷ", "_h": "ʰ", "_n": "ⁿ", "_l": "ˡ", "_~": "̃",
-    "_T": "̋", "_H": "́", "_M": "̄", "_L": "̀", "_B": "̏", "_R": "̌", "_F": "̂"
+    "_T": "̋", "_H": "́", "_M": "̄", "_L": "̀", "_B": "̏", "_R": "̌", "_F": "̂",
+    "_>": "ʼ"
 }
 
 def clrScr():
@@ -285,7 +288,7 @@ def getSyms(ipaStr):
         idx += 1
         while idx < len(ipaStr):
             nxt = ipaStr[idx]
-            if nxt in "ːˑʰʷʲⁿˡ̩̃" or ('\u0300' <= nxt <= '\u036F'):
+            if nxt in "ːˑʰʷʲⁿˡ̩̃ʼ" or ('\u0300' <= nxt <= '\u036F'):
                 c += nxt
                 idx += 1
             elif nxt == '͡' and idx + 1 < len(ipaStr):
@@ -324,7 +327,7 @@ def mkOrt(lngNm):
     except KeyboardInterrupt:
         print(f"\n{Col.hdr}Saving early...{Col.rst}")
     
-    with open(jf, "w", encoding="utf-8") as f: json.dump(ortDat, f, indent=2)
+    with open(jf, "w", encoding="utf-8") as f: json.dump(ortDat, f, indent=2, ensure_ascii=False)
     
     for r in csvDat: r["Lemma"] = getOrt(lngNm, r["IPA"])
     svCsv(lngNm, csvDat)
@@ -643,7 +646,7 @@ def trnSltr(lngNm):
         
     input(f"{Col.prm}[Enter] to continue...{Col.rst}")
 
-def addWrd(lngNm):
+def addWrd(lngNm, args=None):
     clrScr()
     print(f"{Col.hdr}--- Add Word to {lngNm} ---{Col.rst}\n")
     print(f"{Col.prm}(Press Ctrl+C at any time to skip remaining fields and save){Col.rst}\n")
@@ -656,12 +659,29 @@ def addWrd(lngNm):
     tgs = ""
     rel = ""
     
+    if args:
+        ipa = args[0]
+        if len(args) > 1: gls = args[1]
+        if len(args) > 2: pos = " ".join(args[2:])
+    
     try:
-        ipa = input(f"{Col.prm}IPA (or CXS): {Col.rst}").strip()
+        if not ipa:
+            ipa = input(f"{Col.prm}IPA (or CXS): {Col.rst}").strip()
+        else:
+            print(f"{Col.prm}IPA (or CXS): {Col.rst}{ipa}")
+            
         if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
         
-        gls = input(f"{Col.prm}Gloss: {Col.rst}").strip()
-        pos = input(f"{Col.prm}PoS: {Col.rst}").strip()
+        if not gls:
+            gls = input(f"{Col.prm}Gloss: {Col.rst}").strip()
+        else:
+            print(f"{Col.prm}Gloss: {Col.rst}{gls}")
+            
+        if not pos:
+            pos = input(f"{Col.prm}PoS: {Col.rst}").strip()
+        else:
+            print(f"{Col.prm}PoS: {Col.rst}{pos}")
+            
         ety = input(f"{Col.prm}Etymology: {Col.rst}").strip()
         nts = input(f"{Col.prm}Notes: {Col.rst}").strip()
         tgs = input(f"{Col.prm}Tags: {Col.rst}").strip()
@@ -689,10 +709,98 @@ def addWrd(lngNm):
     print(f"\n{Col.ok}Added: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{ipa}{Col.rst}/) - {gls}{Col.rst}")
     input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
-def srcWrd(lngNm):
+def genWrd(lngNm):
+    def_name = lngNm.replace(" ", "-").lower()
+    tmp_file = os.path.join(dirNm, lngNm, "lexifer_tmp.txt")
+    lex_script = os.path.join("tools", "lexifer", "lexifer.py")
+    def_file = f"{def_name}.def"
+    
+    def runLexifer():
+        cwd = os.path.join("tools", "lexifer")
+        try:
+            res = subprocess.run([sys.executable, "lexifer.py", def_file], cwd=cwd, capture_output=True, text=True, check=True)
+            return res.stdout
+        except subprocess.CalledProcessError as e:
+            return f"{Col.err}Lexifer Error:\n{e.stderr}{Col.rst}"
+        except Exception as e:
+            return f"{Col.err}Failed to run Lexifer: {e}{Col.rst}"
+            
+    if not os.path.exists(tmp_file):
+        out_text = runLexifer()
+        with open(tmp_file, "w", encoding="utf-8") as f: f.write(out_text)
+        
+    while True:
+        clrScr()
+        print(f"{Col.hdr}--- Generate Words for {lngNm} ---{Col.rst}\n")
+        
+        if os.path.exists(tmp_file):
+            with open(tmp_file, "r", encoding="utf-8") as f:
+                out_text = f.read()
+            print(f"{Col.prm}Lexifer Output:{Col.rst}\n{out_text}\n")
+            
+        print(f"{Col.prm}(Type '/rg' in IPA to regenerate, or Press Ctrl+C to skip remaining fields and save){Col.rst}\n")
+        
+        ipa = ""
+        gls = ""
+        pos = ""
+        ety = ""
+        nts = ""
+        tgs = ""
+        rel = ""
+        
+        try:
+            ipa = input(f"{Col.prm}IPA (or CXS): {Col.rst}").strip()
+            if ipa == "/rg":
+                out_text = runLexifer()
+                with open(tmp_file, "w", encoding="utf-8") as f: f.write(out_text)
+                continue
+            
+            if not ipa:
+                print(f"\n{Col.err}Aborted. Minimum data (IPA or Gloss) required.{Col.rst}")
+            else:
+                if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
+                
+                gls = input(f"{Col.prm}Gloss: {Col.rst}").strip()
+                pos = input(f"{Col.prm}PoS: {Col.rst}").strip()
+                ety = input(f"{Col.prm}Etymology: {Col.rst}").strip()
+                nts = input(f"{Col.prm}Notes: {Col.rst}").strip()
+                tgs = input(f"{Col.prm}Tags: {Col.rst}").strip()
+                rel = input(f"{Col.prm}Related Words: {Col.rst}").strip()
+        except KeyboardInterrupt:
+            print(f"\n{Col.hdr}Skipping remaining fields and saving...{Col.rst}")
+            
+        if ipa or gls:
+            csvDat = ldCsv(lngNm)
+            lem = getOrt(lngNm, ipa)
+            csvDat.append({"Lemma": lem, "Gloss": gls, "IPA": ipa, "PoS": pos, "Etymology": ety, "Notes": nts, "Tags": tgs, "Related Words": rel})
+            svCsv(lngNm, csvDat)
+            
+            jf = os.path.join(dirNm, lngNm, f"{lngNm}.json")
+            if not os.path.exists(jf):
+                print(f"\n{Col.err}No orthography for {lngNm}.{Col.rst}")
+                if input(f"{Col.prm}Make one now? (y/n): {Col.rst}").strip().lower() == 'y': 
+                    mkOrt(lngNm)
+                    lem = getOrt(lngNm, ipa)
+                    
+            print(f"\n{Col.ok}Added: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{ipa}{Col.rst}/) - {gls}{Col.rst}")
+            
+        c = input(f"\n{Col.prm}Add another word from this list? (y/n): {Col.rst}").strip().lower()
+        if c != 'y':
+            break
+
+def srcWrd(lngNm, args=None):
     clrScr()
     csvDat = ldCsv(lngNm)
-    q = input(f"{Col.prm}Search term: {Col.rst}").strip().lower()
+    
+    if not args:
+        print(f"{Col.hdr}--- Recent Words ---{Col.rst}\n")
+        revDat = list(reversed(csvDat))
+        for r in revDat[:20]:
+            print(f"{Col.hdr}{r['Lemma']}{Col.rst} /{Col.ipa}{r['IPA']}{Col.rst}/ ({Col.prm}{r['PoS']}{Col.rst}) - {Col.ok}{r['Gloss']}{Col.rst}")
+        q = input(f"\n{Col.prm}Search term: {Col.rst}").strip().lower()
+    else:
+        q = " ".join(args).lower()
+        
     print()
     resLst = [r for r in csvDat if q in r["Lemma"].lower() or q in r["Gloss"].lower() or q in r["IPA"].lower()]
     if not resLst: print(f"{Col.err}No matches found.{Col.rst}")
@@ -732,10 +840,19 @@ def vwWrd(lngNm):
         pg += 1
     if (pg + 1) * 20 >= len(csvDat): input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
-def edtWrd(lngNm):
+def edtWrd(lngNm, args=None):
     clrScr()
     csvDat = ldCsv(lngNm)
-    q = input(f"{Col.prm}Search term to edit: {Col.rst}").strip().lower()
+    
+    if not args:
+        print(f"{Col.hdr}--- Recent Words ---{Col.rst}\n")
+        revDat = list(reversed(csvDat))
+        for r in revDat[:20]:
+            print(f"{Col.hdr}{r['Lemma']}{Col.rst} /{Col.ipa}{r['IPA']}{Col.rst}/ - {Col.ok}{r['Gloss']}{Col.rst}")
+        q = input(f"\n{Col.prm}Search term to edit: {Col.rst}").strip().lower()
+    else:
+        q = " ".join(args).lower()
+        
     resLst = [(i, r) for i, r in enumerate(csvDat) if q in r["Lemma"].lower() or q in r["Gloss"].lower() or q in r["IPA"].lower()]
     if not resLst:
         print(f"{Col.err}No matches.{Col.rst}")
@@ -813,7 +930,7 @@ def runLx(lngNm):
         print(f"{Col.hdr}Opening {lsc} in Notepad++...{Col.rst}")
         subprocess.run([exe_cmd, lsc])
     else:
-        print(f"{Col.hdr}Opening {lsc} in neovim...{Col.rst}")
+        print(f"{Col.hdr}Opening {lsc} in nvim...{Col.rst}")
         subprocess.run(["nvim", lsc])
     
     with open(lsc, "r", encoding="utf-8") as f:
@@ -947,14 +1064,23 @@ def doSync(sNm, sLst, rcsFlg):
             if rcsFlg:
                 doSync(dNm, adLst, True)
 
-def syncWrd(lngNm):
+def syncWrd(lngNm, args=None):
     clrScr()
     csvDat = ldCsv(lngNm)
-    c = input(f"{Col.prm}Sync (1) word or (a)ll words? {Col.rst}").strip().lower()
+    c = ""
     sncLst = []
     
-    if c == '1':
-        q = input(f"{Col.prm}Search term: {Col.rst}").strip().lower()
+    if args and len(args) > 0:
+        c = args[0].lower()
+    else:
+        c = input(f"{Col.prm}Sync (1) word or (a)ll words? {Col.rst}").strip().lower()
+        
+    if c in ['1', 'one']:
+        if args and len(args) > 1:
+            q = " ".join(args[1:]).lower()
+        else:
+            q = input(f"{Col.prm}Search term: {Col.rst}").strip().lower()
+            
         resLst = [(i, r) for i, r in enumerate(csvDat) if q in r["Lemma"].lower() or q in r["Gloss"].lower() or q in r["IPA"].lower()]
         if not resLst:
             print(f"{Col.err}No matches.{Col.rst}")
@@ -969,7 +1095,7 @@ def syncWrd(lngNm):
             print(f"{Col.err}Invalid.{Col.rst}")
             input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
             return
-    elif c == 'a':
+    elif c in ['a', 'all']:
         sncLst = csvDat
     else:
         return
@@ -1000,25 +1126,28 @@ def mkDau(pNm):
     print(f"{Col.ok}Created daughter: {dNm}{Col.rst}")
     if input(f"{Col.prm}Setup sound changes for {dNm}? (y/n): {Col.rst}").strip().lower() == 'y': runLx(dNm)
 
-def cmpLng():
+def cmpLng(l1Nm=None, l2Nm=None):
     ls = getLs()
     if len(ls) < 2:
         print(f"{Col.err}Need at least 2 languages to compare.{Col.rst}")
         input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
         return
-    
-    clrScr()
-    print(f"{Col.hdr}--- Compare Languages ---{Col.rst}\n")
-    for i, l in enumerate(ls): print(f"{Col.prm}{i+1}.{Col.rst} {l}")
-    
-    try:
-        i1 = int(input(f"\n{Col.prm}First language number: {Col.rst}")) - 1
-        i2 = int(input(f"{Col.prm}Second language number: {Col.rst}")) - 1
-        l1, l2 = ls[i1], ls[i2]
-    except:
-        print(f"{Col.err}Invalid choice.{Col.rst}")
-        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
-        return
+        
+    if not l1Nm or not l2Nm:
+        clrScr()
+        print(f"{Col.hdr}--- Compare Languages ---{Col.rst}\n")
+        for i, l in enumerate(ls): print(f"{Col.prm}{i+1}.{Col.rst} {l}")
+        
+        try:
+            i1 = int(input(f"\n{Col.prm}First language number: {Col.rst}")) - 1
+            i2 = int(input(f"{Col.prm}Second language number: {Col.rst}")) - 1
+            l1, l2 = ls[i1], ls[i2]
+        except:
+            print(f"{Col.err}Invalid choice.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            return
+    else:
+        l1, l2 = l1Nm, l2Nm
 
     d1 = ldCsv(l1)
     d2 = ldCsv(l2)
@@ -1142,23 +1271,131 @@ def evlWrdTr(lngNm):
     print("\n" + "="*40 + "\n")
     input(f"{Col.prm}[Enter] to continue...{Col.rst}")
 
+def delLng(lngNm):
+    clrScr()
+    ans = input(f"{Col.err}Are you sure you want to permanently delete '{lngNm}' and all its files? (y/n): {Col.rst}").strip().lower()
+    if ans == 'y':
+        shutil.rmtree(os.path.join(dirNm, lngNm))
+        print(f"{Col.ok}Deleted {lngNm}.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
+def renLng(lngNm):
+    clrScr()
+    newNm = input(f"{Col.prm}Enter new name for '{lngNm}': {Col.rst}").strip()
+    if not newNm or newNm == lngNm: return
+    
+    p = os.path.join(dirNm, lngNm)
+    newP = os.path.join(dirNm, newNm)
+    
+    if os.path.exists(newP):
+        print(f"{Col.err}A language named '{newNm}' already exists.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    exts = [".csv", ".json", ".lsc", ".txt"]
+    for ext in exts:
+        oldF = os.path.join(p, f"{lngNm}{ext}")
+        newF = os.path.join(p, f"{newNm}{ext}")
+        if os.path.exists(oldF):
+            os.rename(oldF, newF)
+            
+    os.rename(p, newP)
+    
+    for d in os.listdir(dirNm):
+        dp = os.path.join(dirNm, d)
+        if os.path.isdir(dp) and d != newNm:
+            pTxt = os.path.join(dp, "parent.txt")
+            if os.path.exists(pTxt):
+                with open(pTxt, "r", encoding="utf-8") as f:
+                    currP = f.read().strip()
+                if currP == lngNm:
+                    with open(pTxt, "w", encoding="utf-8") as f:
+                        f.write(newNm)
+            
+            csvF = os.path.join(dp, f"{d}.csv")
+            if os.path.exists(csvF):
+                with open(csvF, "r", encoding="utf-8") as f:
+                    rows = list(csv.DictReader(f))
+                chg = False
+                for r in rows:
+                    ety = r.get("Etymology", "")
+                    if f"Derived from {lngNm}:" in ety:
+                        r["Etymology"] = ety.replace(f"Derived from {lngNm}:", f"Derived from {newNm}:")
+                        chg = True
+                if chg:
+                    with open(csvF, "w", newline="", encoding="utf-8") as f:
+                        w = csv.DictWriter(f, fieldnames=hdrLst)
+                        w.writeheader()
+                        w.writerows(rows)
+    
+    print(f"{Col.ok}Renamed '{lngNm}' to '{newNm}'.{Col.rst}")
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
+def prtWrkHlp(has_lexifer):
+    print(f"{Col.hdr}--- Workspace Commands ---{Col.rst}")
+    print(f"  {Col.prm}/a, /add [ipa/cxs] [gloss] [pos]{Col.rst} : Add a new word (args optional)")
+    if has_lexifer:
+        print(f"  {Col.prm}/g, /gen, /generate{Col.rst} : Generate words with Lexifer")
+    print(f"  {Col.prm}/e, /edit [query]{Col.rst} : Edit a word (leave blank to see newest)")
+    print(f"  {Col.prm}/s, /search [query]{Col.rst} : Search words (leave blank to see newest)")
+    print(f"  {Col.prm}/v, /view{Col.rst} : View full vocabulary")
+    print(f"  {Col.prm}/y, /sync [all | 1] [query]{Col.rst} : Sync words to daughters")
+    print(f"  {Col.prm}/o, /orth, /orthography{Col.rst} : Orthography editor")
+    print(f"  {Col.prm}/p, /par, /para, /paradigm{Col.rst} : Paradigm editor")
+    print(f"  {Col.prm}/l, /lex, /lexurgy{Col.rst} : Run Lexurgy sound changes")
+    print(f"  {Col.prm}/tr, /translate{Col.rst} : Translator tool")
+    print(f"  {Col.prm}/wt, /wordtree{Col.rst} : Evolve word tree")
+    print(f"  {Col.prm}/b, /back{Col.rst} : Go back to main menu")
+    print(f"  {Col.prm}/h, /help{Col.rst} : Show this list")
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
 def wrkSpc(lngNm):
+    def_name = lngNm.replace(" ", "-").lower()
+    def_file = os.path.join("tools", "lexifer", f"{def_name}.def")
+    
     while True:
+        has_lexifer = os.path.exists(def_file)
         clrScr()
         print(f"{Col.hdr}=== Workspace: {lngNm} ==={Col.rst}\n")
-        mnuChc = input(f"{Col.prm}(a)dd, (e)dit, (s)earch, (v)iew, s(y)nc, (o)rtho, (l)exurgy, (p)aradigm, (t)ranslate, (w)ord tree, (c)onfig, (b)ack: {Col.rst}").strip().lower()
-        if mnuChc == 'a': addWrd(lngNm)
-        elif mnuChc == 'e': edtWrd(lngNm)
-        elif mnuChc == 's': srcWrd(lngNm)
-        elif mnuChc == 'v': vwWrd(lngNm)
-        elif mnuChc == 'y': syncWrd(lngNm)
-        elif mnuChc == 'o': mkOrt(lngNm)
-        elif mnuChc == 'l': runLx(lngNm)
-        elif mnuChc == 'p': pdmMnu(lngNm)
-        elif mnuChc == 't': trnSltr(lngNm)
-        elif mnuChc == 'w': evlWrdTr(lngNm)
-        elif mnuChc == 'c': setMnu()
-        elif mnuChc == 'b': break
+        
+        print(f"{Col.prm}Enter command (/h for help): {Col.rst}", end="")
+        inp = input().strip()
+        if not inp: continue
+        parts = inp.split()
+        cmd = parts[0].lower()
+        args = parts[1:]
+        
+        if cmd in ['/b', '/back']: break
+        elif cmd in ['/h', '/help']: prtWrkHlp(has_lexifer)
+        elif cmd in ['/a', '/add']: addWrd(lngNm, args)
+        elif cmd in ['/g', '/gen', '/generate'] and has_lexifer: genWrd(lngNm)
+        elif cmd in ['/e', '/edit']: edtWrd(lngNm, args)
+        elif cmd in ['/s', '/search']: srcWrd(lngNm, args)
+        elif cmd in ['/v', '/view']: vwWrd(lngNm)
+        elif cmd in ['/y', '/sync']: syncWrd(lngNm, args)
+        elif cmd in ['/o', '/orth', '/orthography']: mkOrt(lngNm)
+        elif cmd in ['/l', '/lex', '/lexurgy']: runLx(lngNm)
+        elif cmd in ['/p', '/par', '/para', '/paradigm']: pdmMnu(lngNm)
+        elif cmd in ['/tr', '/translate']: trnSltr(lngNm)
+        elif cmd in ['/wt', '/wordtree']: evlWrdTr(lngNm)
+        elif cmd in ['/c', '/conf', '/config', '/cxs']: setMnu()
+        else:
+            print(f"{Col.err}Invalid command.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
+def prtMnHlp():
+    print(f"{Col.hdr}--- Main Menu Commands ---{Col.rst}")
+    print(f"  {Col.prm}[number]{Col.rst} : Open workspace for language [number]")
+    print(f"  {Col.prm}/n, /new [name]{Col.rst} : Create a new language")
+    print(f"  {Col.prm}/d, /dau, /daughter [number]{Col.rst} : Create daughter of language [number]")
+    print(f"  {Col.prm}/r, /re, /rename [number]{Col.rst} : Rename language [number]")
+    print(f"  {Col.prm}/x, /del [number]{Col.rst} : Delete language [number]")
+    print(f"  {Col.prm}/c, /com, /compare [num1] [num2]{Col.rst} : Compare two languages")
+    print(f"  {Col.prm}/t, /tree{Col.rst} : View language family trees")
+    print(f"  {Col.prm}/conf, /config, /cxs{Col.rst} : Toggle CXS input on/off")
+    print(f"  {Col.prm}/q, /quit{Col.rst} : Quit application")
+    print(f"  {Col.prm}/h, /help{Col.rst} : Show this list")
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
 def mnApp():
     iniApp()
@@ -1167,29 +1404,53 @@ def mnApp():
         ls = getLs()
         if not ls:
             print(f"{Col.hdr}No languages found.{Col.rst}")
-            mkLng()
-            continue
-            
-        print(f"{Col.hdr}=== Languages ==={Col.rst}\n")
-        for i, l in enumerate(ls): print(f"{Col.prm}{i+1}.{Col.rst} {l}")
+            print(f"{Col.prm}Type /new [name] to create one.{Col.rst}\n")
+        else:
+            print(f"{Col.hdr}=== Languages ==={Col.rst}\n")
+            for i, l in enumerate(ls): print(f"{Col.prm}{i+1}.{Col.rst} {l}")
         
-        c = input(f"\n{Col.prm}Choose number, (n)ew, (d)aughter, co(m)pare, (t)ree, (c)onfig, or (q)uit: {Col.rst}").strip().lower()
-        if c == 'q': break
-        elif c == 'n': mkLng()
-        elif c == 'c': setMnu()
-        elif c == 'm': cmpLng()
-        elif c == 't': vwTree()
-        elif c == 'd':
-            try:
-                idx = int(input(f"{Col.prm}Parent number: {Col.rst}")) - 1
-                mkDau(ls[idx])
+        print(f"\n{Col.prm}Enter command (/h for help): {Col.rst}", end="")
+        inp = input().strip()
+        if not inp: continue
+        parts = inp.split()
+        cmd = parts[0].lower()
+        args = parts[1:]
+        
+        if cmd in ['/q', '/quit']: break
+        elif cmd in ['/h', '/help']: prtMnHlp()
+        elif cmd in ['/n', '/new']: 
+            name = " ".join(args) if args else None
+            mkLng(name)
+        elif cmd in ['/d', '/dau', '/daughter']:
+            try: mkDau(ls[int(args[0])-1])
+            except: 
+                print(f"{Col.err}Invalid language number.{Col.rst}")
+                input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        elif cmd in ['/r', '/re', '/rename']:
+            try: renLng(ls[int(args[0])-1])
+            except: 
+                print(f"{Col.err}Invalid language number.{Col.rst}")
+                input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        elif cmd in ['/x', '/del']:
+            try: delLng(ls[int(args[0])-1])
+            except: 
+                print(f"{Col.err}Invalid language number.{Col.rst}")
+                input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        elif cmd in ['/c', '/com', '/compare']:
+            try: cmpLng(ls[int(args[0])-1], ls[int(args[1])-1])
             except:
-                print(f"{Col.err}Invalid choice.{Col.rst}")
+                cmpLng()
+        elif cmd in ['/t', '/tree']: vwTree()
+        elif cmd in ['/conf', '/config', '/cxs']: setMnu()
+        elif cmd.isdigit():
+            idx = int(cmd) - 1
+            if 0 <= idx < len(ls):
+                wrkSpc(ls[idx])
+            else:
+                print(f"{Col.err}Invalid language number.{Col.rst}")
                 input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
         else:
-            try: wrkSpc(ls[int(c)-1])
-            except: 
-                print(f"{Col.err}Invalid choice.{Col.rst}")
-                input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            print(f"{Col.err}Invalid command.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
 if __name__ == "__main__": mnApp()
