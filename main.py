@@ -904,7 +904,7 @@ def runLx(lngNm):
         isCxs = cfgDat.get("cxs", False)
         print(f"{Col.hdr}Would you like to run Lexurgy in CXS mode or IPA mode (1: CXS, 2: IPA)?\n")
         inp = input().strip()
-        if inp == 1:
+        if inp in ['1']:
             if isCxs:
                 def toCxs(st):
                     st = st.replace("͡", "")
@@ -914,7 +914,7 @@ def runLx(lngNm):
                     return st
                 vLst = [toCxs(s) for s in vLst]
                 cLst = [toCxs(s) for s in cLst]
-        elif inp == 2:
+        elif inp in ['2']:
             setMnu()
 
         with open(lsc, "w", encoding="utf-8") as f:
@@ -937,11 +937,11 @@ def runLx(lngNm):
     else:
         print(f"{Col.hdr}Would you like to open kate, micro, or neovim? (k, m, n){Col.rst}")
         chcIdx = input().strip()
-        if chcIdx == "k" or "K":
+        if chcIdx in ['k', 'K']:
             subprocess.run(["kate", lsc])
-        elif chcIdx == "m" or "M":
+        elif chcIdx in ['m', 'M']:
             subprocess.run(["micro", lsc])
-        elif chcIdx == "n" or "N":
+        elif chcIdx in ['n', 'N']:
             subprocess.run(["nvim", lsc])
         else:
             print(f"{Col.err}Invalid.{Col.rst}")
