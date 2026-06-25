@@ -902,15 +902,20 @@ def runLx(lngNm):
             else: cLst.append(s)
             
         isCxs = cfgDat.get("cxs", False)
-        if isCxs:
-            def toCxs(st):
-                st = st.replace("͡", "")
-                for cxs, ipa in sorted(c2iMap.items(), key=lambda x: -len(x[1])):
-                    st = st.replace(ipa, cxs)
-                st = st.replace('_', '\\_').replace(':', '\\:').replace(',', '\\,')
-                return st
-            vLst = [toCxs(s) for s in vLst]
-            cLst = [toCxs(s) for s in cLst]
+        print(f"{Col.hdr}Would you like to run Lexurgy in CXS mode or IPA mode (1: CXS, 2: IPA)?\n")
+        inp = input().strip()
+        if inp == 1:
+            if isCxs:
+                def toCxs(st):
+                    st = st.replace("͡", "")
+                    for cxs, ipa in sorted(c2iMap.items(), key=lambda x: -len(x[1])):
+                        st = st.replace(ipa, cxs)
+                    st = st.replace('_', '\\_').replace(':', '\\:').replace(',', '\\,')
+                    return st
+                vLst = [toCxs(s) for s in vLst]
+                cLst = [toCxs(s) for s in cLst]
+        elif inp == 2:
+            setMnu()
 
         with open(lsc, "w", encoding="utf-8") as f:
             f.write(f"# {'CXS' if isCxs else 'IPA'}\n")
@@ -930,8 +935,18 @@ def runLx(lngNm):
         print(f"{Col.hdr}Opening {lsc} in Notepad++...{Col.rst}")
         subprocess.run([exe_cmd, lsc])
     else:
-        print(f"{Col.hdr}Opening {lsc} in nvim...{Col.rst}")
-        subprocess.run(["nvim", lsc])
+        print(f"{Col.hdr}Would you like to open kate, micro, or neovim? (k, m, n){Col.rst}")
+        chcIdx = input().strip()
+        if chcIdx == "k" or "K":
+            subprocess.run(["kate", lsc])
+        elif chcIdx == "m" or "M":
+            subprocess.run(["micro", lsc])
+        elif chcIdx == "n" or "N":
+            subprocess.run(["nvim", lsc])
+        else:
+            print(f"{Col.err}Invalid.{Col.rst}")
+            print(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            return
     
     with open(lsc, "r", encoding="utf-8") as f:
         lns = f.readlines()
@@ -1347,6 +1362,7 @@ def prtWrkHlp(has_lexifer):
     print(f"  {Col.prm}/wt, /wordtree{Col.rst} : Evolve word tree")
     print(f"  {Col.prm}/b, /back{Col.rst} : Go back to main menu")
     print(f"  {Col.prm}/h, /help{Col.rst} : Show this list")
+    print(f"  {Col.prm}/q, /quit{Col.rst} : Quit application")
     input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
 def wrkSpc(lngNm):
@@ -1379,6 +1395,7 @@ def wrkSpc(lngNm):
         elif cmd in ['/tr', '/translate']: trnSltr(lngNm)
         elif cmd in ['/wt', '/wordtree']: evlWrdTr(lngNm)
         elif cmd in ['/c', '/conf', '/config', '/cxs']: setMnu()
+        elif cmd in ['/q', '/quit']: exit()
         else:
             print(f"{Col.err}Invalid command.{Col.rst}")
             input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
@@ -1416,7 +1433,7 @@ def mnApp():
         cmd = parts[0].lower()
         args = parts[1:]
         
-        if cmd in ['/q', '/quit']: break
+        if cmd in ['/q', '/quit']: exit()
         elif cmd in ['/h', '/help']: prtMnHlp()
         elif cmd in ['/n', '/new']: 
             name = " ".join(args) if args else None
