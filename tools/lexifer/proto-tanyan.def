@@ -1,0 +1,7 @@
+C = p:1 t:1 c:1 k:1 m:1 n:1 ñ:1 ŋ:1 v:1 s:1 ś:1 ġ:1 l:1 r:1 y:1
+V = a:1 i:1 u:1
+N = m:1 n:1 ñ:1 ŋ:1
+
+random-rate: 50
+
+words: C?VN? C?VCVN? C?VV?N?
