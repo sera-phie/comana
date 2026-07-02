@@ -1,0 +1,8 @@
+C = f:1 w:1 h:1 p:1 t:1 k:1 b:1 d:1 g:1 s:1 r:1 l:1 z:1 š:1 č:1 n:1 m:1 ʔ:1
+M = w:10 ww:4 f:10 ff:4 h:10 hh:4 p:10 t:10 k:10 b:10 d:10 g:10 s:10 r:10 l:10 z:10 š:10 č:10 n:10 m:10 ʔ:10 pp:4 tt:4 kk:4 bb:4 dd:4 gg:4 ss:4 rr:4 ll:4 zz:4 šš:4 čč:4 nn:4 mm:4
+F = b:1 d:1 g:1 r:1 l:1 ʔ:1 š:1 m:1 n:1 w:1
+V = a:1 i:1 u:1 ā:1 ī:1 ū:1 e:1 ē:1
+
+random-rate: 50
+
+words: C?VF? C?VMVF? C?VMVMVF?
