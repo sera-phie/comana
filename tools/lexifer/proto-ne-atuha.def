@@ -1,0 +1,7 @@
+C = b:1 p:1 d:1 dl:1 ds:1 dš:1 dšʷ:1 j:1 ɢ:1 r:1 t:1 tl:1 ts:1 tš:1 tšʷ:1 c:1 q:1 tʼ:1 tlʼ:1 tsʼ:1 tšʼ:1 tšʼʷ:1 cʼ:1 qʼ:1 ʔ:1 ł:1 s:1 š:1 x̣:1 h:1 l:1 z:1 ž:1 y:1 m:1 n:1 ʁ:1 ñ:1 w:1
+V = i:10 u:10 ə:10 e:10 a:10 í:2 ú:2 á:2 é:2
+F = s:1 ł:1 š:1 l:1 r:1 y:1 n:1 m:1 w:1
+
+random-rate: 30
+
+words: C?VC? C?VF?CVC? C?VF?CVCVC? C?VCVF?CVC?
