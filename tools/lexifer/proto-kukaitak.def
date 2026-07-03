@@ -1,0 +1,7 @@
+C = t:1 k:1 d:1 g:1 r:1 l:1 n:1 y:1 s:1 ś:1
+R = r:1 l:1 s:1
+V = a:10 e:10 i:10 o:10 u:10 ä:10 ü:10 ai:3 ei:3 ui:3 oi:3 aa:3 ee:3 ii:3 uu:3 oo:3 ää:3 üü:3 äi:3 üi:3 ə:10 əi:3 əə:3 ï:10 ïï:3
+
+random-rate: 35
+
+words: C?VC? C?VR?CVC? C?VCR?VC? C?VCVR?CVC?
