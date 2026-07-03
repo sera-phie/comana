@@ -1,0 +1,6 @@
+C = m:1 n:1 nr:1 ñ:1 p̄:1 p:1 b:1 ṯ:1 t:1 d:1 ṯr:1 tr:1 dr:1 c̄:1 c:1 j:1 ḵ:1 k:1 g:1 s:1 ł:1 sr:1 x:1 h:1 r:1 w:1
+R = w:1 ñ:1
+F = m:1 n:1 ñ:1 p̄:1 p:1 ṯ:1 t:1 ḵ:1 k:1 c̄:1 c:1 s:1 x:1 r:1
+V = i:1 ɨ:1 u:1 e:1 ʌ:1 o:1 a:1 a̱:1
+
+words: C?R?VF? C?R?VF?CVF? C?VF?CR?VF?
