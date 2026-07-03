@@ -1,0 +1,6 @@
+C = m:1 n:1 p:1 b:1 t:1 d:1 c:1 z:1 k:1 g:1 f:1 s:1 h:1 r:1
+H = h
+F = m:1 n:1 p:1 t:1 k:1 c:1 f:1 s:1 h:1 r:1
+V = i:1 a:1 u:1
+
+words: C?VH?F? C?VH?CC?VF? C?VCC?VHCVF? C?VH?CC?VCC?VF?
