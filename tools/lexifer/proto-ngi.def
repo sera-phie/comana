@@ -1,0 +1,5 @@
+C = m:1 n:1 ṅ:1 t:1 k:1 f:1 s:1 h:1 r:1 v:1 l:1 w:1
+R = r:1 v:1 l:1 w:1
+V = i:1 u:1 e:1 o:1 a:1
+
+words: C?VC? CR?VC? CR?VCVC? C?VCR?VC? CR?VCVCR?VC? C?VCVCR?VC? C?VCR?VCVC?
