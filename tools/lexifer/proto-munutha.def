@@ -1,0 +1,6 @@
+C = ph:1 p:1 th:1 t:1 ṭh:1 ṭ:1 kh:1 k:1 qh:1 q:1 f:1 s:1 ṣ:1 x:1 x̣:1 l:1 ḷ:1 w:1 n:1 m:1 ṇ:1 ŋ:1
+V = a:1 i:1 u:1
+
+random-rate: 35
+
+words: C?VC? C?VCVC? C?VCVCVC?

@@ -1,0 +1,7 @@
+C = m:1 n:1 p:1 t:1 k:1 ʔ:1 f:1 s:1 r:1 l:1 w:1
+V = i:10 u:10 ị:10 ụ:10 e:10 eñ:4 o:10 oñ:4 ẹ:10 ẹñ:4 ọ:10 ọñ:4 ạ:10 ạñ:4 a:10 añ:4
+R = r:1 l:1
+
+random-rate: 50
+
+words: C?R?VC? C?R?VCR?VC? C?VCVCVC?
