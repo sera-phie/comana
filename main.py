@@ -49,6 +49,8 @@ abbrDict = {
     "prtWrdTr": "Print Word Tree",
     "renLng": "Rename Language",
     "delLng": "Delete Language",
+    "lonWrd": "Loan Word",
+    "vwCht": "View Chart",
     "nLng": "Node Language",
     "nIpa": "Node IPA",
     "nOrt": "Node Orthography",
@@ -346,6 +348,41 @@ def mkOrt(lngNm):
                     r["Etymology"] = f"{m.group(1)}{nOrt} /{m.group(3)}/"
                     chg = True
         if chg: svCsv(dNm, dDat)
+
+def vwCht(lngNm):
+    clrScr()
+    jf = os.path.join(dirNm, lngNm, f"{lngNm}.json")
+    if not os.path.exists(jf):
+        print(f"{Col.err}No orthography data found for {lngNm}. Please create an orthography first.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    with open(jf, "r", encoding="utf-8") as f:
+        ortDat = json.load(f)
+        
+    vBase = "aeiouyøœɒɔɛɪʊʌʏəɘɞɜɐɤɵɨʉɯæɑ"
+    vLst = []
+    cLst = []
+    
+    for ipa, ort in ortDat.items():
+        if any(v in ipa for v in vBase):
+            vLst.append((ipa, ort))
+        else:
+            cLst.append((ipa, ort))
+            
+    print(f"{Col.hdr}--- {lngNm} Orthography & IPA Chart ---{Col.rst}\n")
+    
+    print(f"{Col.hdr}Consonants:{Col.rst}")
+    print("-" * 30)
+    for ipa, ort in sorted(cLst, key=lambda x: x[0]):
+        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
+        
+    print(f"\n{Col.hdr}Vowels:{Col.rst}")
+    print("-" * 30)
+    for ipa, ort in sorted(vLst, key=lambda x: x[0]):
+        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
+        
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
 def mkPdm(lngNm):
     clrScr()
@@ -1347,15 +1384,145 @@ def renLng(lngNm):
     print(f"{Col.ok}Renamed '{lngNm}' to '{newNm}'.{Col.rst}")
     input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
+def lonWrd(lngNm, args=None):
+    clrScr()
+    ls = getLs()
+    avail = [l for l in ls if l != lngNm]
+    if not avail:
+        print(f"{Col.err}No other languages available to loan from.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    print(f"{Col.hdr}--- Loan Word into {lngNm} ---{Col.rst}\n")
+    print("Available Source Languages:")
+    for i, l in enumerate(avail):
+        print(f"{Col.prm}{i+1}.{Col.rst} {l}")
+        
+    c = input(f"\n{Col.prm}Choose source language number: {Col.rst}").strip()
+    try:
+        srcLng = avail[int(c)-1]
+    except:
+        print(f"{Col.err}Invalid choice.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    clrScr()
+    print(f"{Col.hdr}--- Loaning from {srcLng} ---{Col.rst}\n")
+    q = input(f"{Col.prm}Search term in {srcLng}: {Col.rst}").strip().lower()
+    srcDat = ldCsv(srcLng)
+    resLst = [(i, r) for i, r in enumerate(srcDat) if q in r["Lemma"].lower() or q in r["Gloss"].lower() or q in r["IPA"].lower()]
+    
+    if not resLst:
+        print(f"{Col.err}No matches found in {srcLng}.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    print()
+    for idx, (i, r) in enumerate(resLst):
+        print(f"{Col.prm}{idx}.{Col.rst} {Col.hdr}{r['Lemma']}{Col.rst} /{Col.ipa}{r['IPA']}{Col.rst}/ - {Col.ok}{r['Gloss']}{Col.rst}")
+        
+    sc = input(f"\n{Col.prm}Choose word to loan: {Col.rst}").strip()
+    try: 
+        srcWrd = resLst[int(sc)][1]
+    except:
+        print(f"{Col.err}Invalid choice.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    clrScr()
+    print(f"{Col.hdr}--- Adapting Loan Word ---{Col.rst}\n")
+    print(f"Original: {Col.hdr}{srcWrd['Lemma']}{Col.rst} /{Col.ipa}{srcWrd['IPA']}{Col.rst}/")
+    print(f"Gloss: {Col.ok}{srcWrd['Gloss']}{Col.rst} | PoS: {Col.prm}{srcWrd['PoS']}{Col.rst}\n")
+    print(f"{Col.prm}(Press Ctrl+C to abort){Col.rst}\n")
+    
+    try:
+        nIpa = input(f"{Col.prm}Adapted IPA (or CXS) in {lngNm}: {Col.rst}").strip()
+        if not nIpa:
+            print(f"{Col.err}Aborted. Adapted IPA required.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            return
+        if cfgDat.get("cxs", False): nIpa = cvCxs(nIpa)
+        
+        nGls = input(f"{Col.prm}Gloss [{srcWrd['Gloss']}]: {Col.rst}").strip()
+        if not nGls: nGls = srcWrd['Gloss']
+        
+        nPos = input(f"{Col.prm}PoS [{srcWrd['PoS']}]: {Col.rst}").strip()
+        if not nPos: nPos = srcWrd['PoS']
+        
+        defEty = f"Loan from {srcLng}: {srcWrd['Lemma']} /{srcWrd['IPA']}/"
+        nEty = input(f"{Col.prm}Etymology [{defEty}]: {Col.rst}").strip()
+        if not nEty: nEty = defEty
+        
+        nNts = input(f"{Col.prm}Notes: {Col.rst}").strip()
+        nTgs = input(f"{Col.prm}Tags: {Col.rst}").strip()
+        nRel = input(f"{Col.prm}Related Words: {Col.rst}").strip()
+        
+    except KeyboardInterrupt:
+        print(f"\n{Col.err}Aborted.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    csvDat = ldCsv(lngNm)
+    lem = getOrt(lngNm, nIpa)
+    csvDat.append({"Lemma": lem, "Gloss": nGls, "IPA": nIpa, "PoS": nPos, "Etymology": nEty, "Notes": nNts, "Tags": nTgs, "Related Words": nRel})
+    svCsv(lngNm, csvDat)
+    
+    jf = os.path.join(dirNm, lngNm, f"{lngNm}.json")
+    if not os.path.exists(jf):
+        print(f"\n{Col.err}No orthography for {lngNm}.{Col.rst}")
+        if input(f"{Col.prm}Make one now? (y/n): {Col.rst}").strip().lower() == 'y': 
+            mkOrt(lngNm)
+            lem = getOrt(lngNm, nIpa)
+            
+    print(f"\n{Col.ok}Added Loan: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{nIpa}{Col.rst}/) - {nGls}{Col.rst}")
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
+def vwCht(lngNm):
+    clrScr()
+    jf = os.path.join(dirNm, lngNm, f"{lngNm}.json")
+    if not os.path.exists(jf):
+        print(f"{Col.err}No orthography data found for {lngNm}. Please create an orthography first.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    with open(jf, "r", encoding="utf-8") as f:
+        ortDat = json.load(f)
+        
+    vBase = "aeiouyøœɒɔɛɪʊʌʏəɘɞɜɐɤɵɨʉɯæɑ"
+    vLst = []
+    cLst = []
+    
+    for ipa, ort in ortDat.items():
+        if any(v in ipa for v in vBase):
+            vLst.append((ipa, ort))
+        else:
+            cLst.append((ipa, ort))
+            
+    print(f"{Col.hdr}--- {lngNm} Orthography & IPA Chart ---{Col.rst}\n")
+    
+    print(f"{Col.hdr}Consonants:{Col.rst}")
+    print("-" * 30)
+    for ipa, ort in sorted(cLst, key=lambda x: x[0]):
+        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
+        
+    print(f"\n{Col.hdr}Vowels:{Col.rst}")
+    print("-" * 30)
+    for ipa, ort in sorted(vLst, key=lambda x: x[0]):
+        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
+        
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
 def prtWrkHlp(has_lexifer):
     print(f"{Col.hdr}--- Workspace Commands ---{Col.rst}")
     print(f"  {Col.prm}/a, /add [ipa/cxs] [gloss] [pos]{Col.rst} : Add a new word (args optional)")
+    print(f"  {Col.prm}/lo, /loan{Col.rst} : Loan a word from another language")
     if has_lexifer:
         print(f"  {Col.prm}/g, /gen, /generate{Col.rst} : Generate words with Lexifer")
     print(f"  {Col.prm}/e, /edit [query]{Col.rst} : Edit a word (leave blank to see newest)")
     print(f"  {Col.prm}/s, /search [query]{Col.rst} : Search words (leave blank to see newest)")
     print(f"  {Col.prm}/v, /view{Col.rst} : View full vocabulary")
     print(f"  {Col.prm}/y, /sync [all | 1] [query]{Col.rst} : Sync words to daughters")
+    print(f"  {Col.prm}/ch, /chart{Col.rst} : View IPA & Orthography chart")
     print(f"  {Col.prm}/o, /orth, /orthography{Col.rst} : Orthography editor")
     print(f"  {Col.prm}/p, /par, /para, /paradigm{Col.rst} : Paradigm editor")
     print(f"  {Col.prm}/l, /lex, /lexurgy{Col.rst} : Run Lexurgy sound changes")
@@ -1385,11 +1552,13 @@ def wrkSpc(lngNm):
         if cmd in ['/b', '/back']: break
         elif cmd in ['/h', '/help']: prtWrkHlp(has_lexifer)
         elif cmd in ['/a', '/add']: addWrd(lngNm, args)
+        elif cmd in ['/lo', '/loan']: lonWrd(lngNm, args)
         elif cmd in ['/g', '/gen', '/generate'] and has_lexifer: genWrd(lngNm)
         elif cmd in ['/e', '/edit']: edtWrd(lngNm, args)
         elif cmd in ['/s', '/search']: srcWrd(lngNm, args)
         elif cmd in ['/v', '/view']: vwWrd(lngNm)
         elif cmd in ['/y', '/sync']: syncWrd(lngNm, args)
+        elif cmd in ['/ch', '/chart']: vwCht(lngNm)
         elif cmd in ['/o', '/orth', '/orthography']: mkOrt(lngNm)
         elif cmd in ['/l', '/lex', '/lexurgy']: runLx(lngNm)
         elif cmd in ['/p', '/par', '/para', '/paradigm']: pdmMnu(lngNm)
