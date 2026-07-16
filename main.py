@@ -28,6 +28,7 @@ abbrDict = {
     "trnSltr": "Translator",
     "addWrd": "Add Word",
     "genWrd": "Generate Word",
+    "genStl": "Generate Settlement Name",
     "srcWrd": "Search Word",
     "edtWrd": "Edit Word",
     "vwWrd": "View Words",
@@ -826,6 +827,133 @@ def genWrd(lngNm):
         if c != 'y':
             break
 
+def genStl(lngNm):
+    clrScr()
+    csvDat = ldCsv(lngNm)
+    if not csvDat:
+        print(f"{Col.err}Dictionary is empty.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+
+    bGl = ["town", "city", "village", "settlement", "fort", "castle", "port", "haven", "house", "home", "mouth", "valley", "hill", "mountain", "field"]
+    mGl = ["new", "old", "big", "great", "small", "high", "low", "stone", "rock", "water", "river", "lake", "forest", "wood", "black", "white", "red", "cold", "hot"]
+
+    misB = [g for g in bGl if not any(g in r["Gloss"].lower() for r in csvDat)]
+    misM = [g for g in mGl if not any(g in r["Gloss"].lower() for r in csvDat)]
+
+    if misB or misM:
+        print(f"{Col.hdr}=== Settlement Component Recommendations ==={Col.rst}\n")
+        if misB: print(f"Missing bases     : {Col.ipa}{', '.join(misB)}{Col.rst}")
+        if misM: print(f"Missing modifiers : {Col.ipa}{', '.join(misM)}{Col.rst}")
+        
+        ans = input(f"\n{Col.prm}Would you like to generate/add missing words? (y/n): {Col.rst}").strip().lower()
+        if ans == 'y':
+            def_name = lngNm.replace(" ", "-").lower()
+            def_file = os.path.join("tools", "lexifer", f"{def_name}.def")
+            has_lex = os.path.exists(def_file)
+            cands = []
+            if has_lex:
+                try:
+                    cwd = os.path.join("tools", "lexifer")
+                    res = subprocess.run([sys.executable, "lexifer.py", f"{def_name}.def"], cwd=cwd, capture_output=True, text=True, check=True)
+                    cands = [w.strip() for l in res.stdout.split('\n') for w in [l.strip()] if w and not w.startswith('#')][:25]
+                except Exception as e:
+                    print(f"{Col.err}Lexifer run error: {e}{Col.rst}")
+            
+            for g in (misB + misM):
+                clrScr()
+                pos = "noun" if g in misB else "adjective"
+                print(f"{Col.hdr}--- Creating Word for: {Col.ok}{g}{Col.rst} ({Col.prm}{pos}{Col.rst}) ---{Col.rst}\n")
+                if cands:
+                    print(f"{Col.hdr}Lexifer suggestions:{Col.rst}")
+                    for idx, c in enumerate(cands[:10]):
+                        print(f"  {Col.prm}{idx+1}.{Col.rst} {Col.ipa}{c}{Col.rst}")
+                    print()
+                
+                wh = input(f"{Col.prm}Enter IPA (or choice #, or blank to skip): {Col.rst}").strip()
+                if not wh: continue
+                
+                if wh.isdigit() and cands and 1 <= int(wh) <= min(len(cands), 10):
+                    ipa = cands[int(wh)-1]
+                else:
+                    ipa = wh
+                
+                if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
+                lem = getOrt(lngNm, ipa)
+                
+                csvDat.append({
+                    "Lemma": lem, "Gloss": g, "IPA": ipa, "PoS": pos,
+                    "Etymology": "", "Notes": "Settlement generator component",
+                    "Tags": "settlement-suggested", "Related Words": ""
+                })
+                svCsv(lngNm, csvDat)
+                print(f"\n{Col.ok}Saved: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{ipa}{Col.rst}/) as '{g}'.{Col.rst}")
+                if ipa in cands: cands.remove(ipa)
+                input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            csvDat = ldCsv(lngNm)
+
+    clrScr()
+    bLst = [r for r in csvDat if any(g in r["Gloss"].lower() for g in bGl)]
+    mLst = [r for r in csvDat if any(g in r["Gloss"].lower() for g in mGl)]
+
+    print(f"{Col.hdr}--- Settlement Name Generator ---{Col.rst}\n")
+    print(f"Found {Col.ok}{len(bLst)}{Col.rst} base words and {Col.ok}{len(mLst)}{Col.rst} modifier words.\n")
+
+    if not bLst or not mLst:
+        print(f"{Col.err}Insufficient vocabulary. Falling back to all nouns/adjectives...{Col.rst}")
+        bLst = [r for r in csvDat if r["PoS"].lower() in ["n", "noun", "proper noun"]]
+        mLst = [r for r in csvDat if r["PoS"].lower() in ["adj", "adjective", "n", "noun"]]
+
+    if not bLst or not mLst:
+        print(f"{Col.err}Still not enough words.{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+
+    print(f"Choose order:")
+    print(f"  {Col.prm}1.{Col.rst} Modifier + Base")
+    print(f"  {Col.prm}2.{Col.rst} Base + Modifier")
+    ordChc = input(f"\n{Col.prm}Choice (1-2): {Col.rst}").strip()
+    
+    lnk = input(f"{Col.prm}Compounding linker vowel (optional): {Col.rst}").strip()
+    if cfgDat.get("cxs", False) and lnk: lnk = cvCxs(lnk)
+    
+    ctInp = input(f"{Col.prm}How many names to generate? (default 10): {Col.rst}").strip()
+    ct = int(ctInp) if ctInp.isdigit() else 10
+
+    import random
+    print(f"\n{Col.hdr}--- Generated Settlements ---{Col.rst}\n")
+    resLst = []
+    for _ in range(ct):
+        b = random.choice(bLst)
+        m = random.choice(mLst)
+        
+        if ordChc == '2':
+            ipa = b["IPA"] + lnk + m["IPA"]
+            gls = f"{b['Gloss'].capitalize()}-{m['Gloss']}"
+        else:
+            ipa = m["IPA"] + lnk + b["IPA"]
+            gls = f"{m['Gloss'].capitalize()}-{b['Gloss']}"
+            
+        ipa = ipa.replace(" ", "")
+        lem = getOrt(lngNm, ipa)
+        resLst.append((lem, ipa, gls))
+        print(f"  {Col.ok}{lem:<18}{Col.rst} /{Col.ipa}{ipa:<15}{Col.rst}/ ({gls})")
+
+    print(f"\n{Col.prm}Save any of these to your dictionary?{Col.rst}")
+    svNm = input(f"{Col.prm}Enter name to save (or press Enter to skip): {Col.rst}").strip()
+    if svNm:
+        mch = next((r for r in resLst if r[0].lower() == svNm.lower()), None)
+        if mch:
+            csvDat.append({
+                "Lemma": mch[0], "Gloss": f"Place name ({mch[2]})", "IPA": mch[1],
+                "PoS": "proper noun", "Etymology": f"Compound of {mch[2].lower()}",
+                "Notes": "Settlement generator", "Tags": "settlement, place", "Related Words": ""
+            })
+            svCsv(lngNm, csvDat)
+            print(f"{Col.ok}Saved {mch[0]} to dictionary.{Col.rst}")
+            
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
 def srcWrd(lngNm, args=None):
     clrScr()
     csvDat = ldCsv(lngNm)
@@ -1518,6 +1646,7 @@ def prtWrkHlp(has_lexifer):
     print(f"  {Col.prm}/lo, /loan{Col.rst} : Loan a word from another language")
     if has_lexifer:
         print(f"  {Col.prm}/g, /gen, /generate{Col.rst} : Generate words with Lexifer")
+    print(f"  {Col.prm}/town, /settle{Col.rst} : Generate town/settlement names")
     print(f"  {Col.prm}/e, /edit [query]{Col.rst} : Edit a word (leave blank to see newest)")
     print(f"  {Col.prm}/s, /search [query]{Col.rst} : Search words (leave blank to see newest)")
     print(f"  {Col.prm}/v, /view{Col.rst} : View full vocabulary")
@@ -1554,6 +1683,7 @@ def wrkSpc(lngNm):
         elif cmd in ['/a', '/add']: addWrd(lngNm, args)
         elif cmd in ['/lo', '/loan']: lonWrd(lngNm, args)
         elif cmd in ['/g', '/gen', '/generate'] and has_lexifer: genWrd(lngNm)
+        elif cmd in ['/town', '/settle']: genStl(lngNm)
         elif cmd in ['/e', '/edit']: edtWrd(lngNm, args)
         elif cmd in ['/s', '/search']: srcWrd(lngNm, args)
         elif cmd in ['/v', '/view']: vwWrd(lngNm)
