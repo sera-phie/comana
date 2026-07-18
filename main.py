@@ -29,6 +29,7 @@ abbrDict = {
     "addWrd": "Add Word",
     "genWrd": "Generate Word",
     "genStl": "Generate Settlement Name",
+    "chkSwd": "Check Swadesh List",
     "srcWrd": "Search Word",
     "edtWrd": "Edit Word",
     "vwWrd": "View Words",
@@ -143,6 +144,24 @@ c2iMap = {
     "_T": "̋", "_H": "́", "_M": "̄", "_L": "̀", "_B": "̏", "_R": "̌", "_F": "̂",
     "_>": "ʼ"
 }
+
+swadeshLst = [
+    "I", "you", "we", "this", "that", "who", "what", "not", "all", "many", "one", "two", "big", "long", "small",
+    "woman", "man", "person", "fish", "bird", "dog", "louse", "tree", "seed", "leaf", "root", "bark", "skin",
+    "flesh", "blood", "bone", "grease", "egg", "horn", "tail", "feather", "hair", "head", "ear", "eye", "nose",
+    "mouth", "tooth", "tongue", "fingernail", "foot", "knee", "hand", "belly", "neck", "breasts", "heart", "liver",
+    "drink", "eat", "bite", "see", "hear", "know", "sleep", "die", "kill", "swim", "fly", "walk", "come", "lie",
+    "sit", "stand", "give", "say", "sun", "moon", "star", "water", "rain", "stone", "sand", "earth", "cloud",
+    "smoke", "fire", "ashes", "burn", "path", "mountain", "red", "green", "yellow", "white", "black", "night",
+    "hot", "cold", "full", "new", "good", "bad", "round", "dry", "name", "three", "four", "five", "child",
+    "husband", "wife", "mother", "father", "animal", "snake", "worm", "fruit", "grass", "rope", "salt", "claw",
+    "leg", "suck", "spit", "vomit", "blow", "breathe", "laugh", "think", "smell", "fear", "live", "fight",
+    "hunt", "hit", "cut", "split", "stab", "scratch", "dig", "turn", "fall", "hold", "squeeze", "rub", "wash",
+    "wipe", "pull", "push", "throw", "tie", "sew", "sing", "play", "float", "flow", "freeze", "swell", "river",
+    "lake", "sea", "dust", "fog", "sky", "wind", "snow", "ice", "road", "day", "year", "warm", "old", "rotten",
+    "dirty", "straight", "sharp", "dull", "smooth", "wet", "correct", "near", "far", "right", "left", "at",
+    "in", "with", "and", "if", "because"
+]
 
 def clrScr():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -471,7 +490,7 @@ def edtPdm(lngNm):
             mtxDat[p["rowNm"]][p["colNm"]] = f"{p['afxTy'][0]}:{p['mutRl']}"
         
     clrScr()
-    print(f"{Col.hdr}--- Editing Table: {tgtTbl} ---{Col.rst}\n")
+    print(f"\n{Col.hdr}--- Editing Table: {tgtTbl} ---{Col.rst}\n")
     
     hdr = f"{'':<8} | " + " | ".join([f"{Col.hdr}{c:^10}{Col.rst}" for c in cLs])
     print(hdr)
@@ -954,6 +973,70 @@ def genStl(lngNm):
             
     input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
+def chkSwd(lngNm):
+    clrScr()
+    csvDat = ldCsv(lngNm)
+    
+    hasGls = {r["Gloss"].lower() for r in csvDat}
+    misS = [g for g in swadeshLst if g.lower() not in hasGls]
+    
+    total = len(swadeshLst)
+    found = total - len(misS)
+    
+    print(f"{Col.hdr}=== Swadesh 200 List Explorer: {lngNm} ==={Col.rst}\n")
+    print(f"Vocabulary status: {Col.ok}{found}/{total}{Col.rst} Swadesh words found. ({Col.err}{len(misS)}{Col.rst} missing)\n")
+    
+    if not misS:
+        print(f"{Col.ok}Congratulations! You have completed the Swadesh 200 vocabulary!{Col.rst}")
+        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+        return
+        
+    ans = input(f"\n{Col.prm}Would you like to generate/add missing words? (y/n): {Col.rst}").strip().lower()
+    if ans == 'y':
+        def_name = lngNm.replace(" ", "-").lower()
+        def_file = os.path.join("tools", "lexifer", f"{def_name}.def")
+        has_lex = os.path.exists(def_file)
+        cands = []
+        if has_lex:
+            try:
+                cwd = os.path.join("tools", "lexifer")
+                res = subprocess.run([sys.executable, "lexifer.py", f"{def_name}.def"], cwd=cwd, capture_output=True, text=True, check=True)
+                cands = [w.strip() for l in res.stdout.split('\n') for w in [l.strip()] if w and not w.startswith('#')][:100]
+            except Exception as e:
+                print(f"{Col.err}Lexifer run error: {e}{Col.rst}")
+        
+        for g in misS:
+            clrScr()
+            print(f"{Col.hdr}--- Creating Swadesh Word for: {Col.ok}{g}{Col.rst} ---{Col.rst}\n")
+            if cands:
+                print(f"{Col.hdr}Lexifer suggestions:{Col.rst}")
+                for idx, c in enumerate(cands[:10]):
+                    print(f"  {Col.prm}{idx+1}.{Col.rst} {Col.ipa}{c}{Col.rst}")
+                print()
+            
+            wh = input(f"{Col.prm}Enter IPA/CXS (or choice #, or blank to skip, 'q' to abort): {Col.rst}").strip()
+            if wh.lower() == 'q':
+                break
+            if not wh: continue
+            
+            if wh.isdigit() and cands and 1 <= int(wh) <= min(len(cands), 10):
+                ipa = cands[int(wh)-1]
+            else:
+                ipa = wh
+            
+            if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
+            lem = getOrt(lngNm, ipa)
+            
+            csvDat.append({
+                "Lemma": lem, "Gloss": g, "IPA": ipa, "PoS": "swadesh",
+                "Etymology": "", "Notes": "Swadesh List Vocab",
+                "Tags": "swadesh", "Related Words": ""
+            })
+            svCsv(lngNm, csvDat)
+            print(f"\n{Col.ok}Saved: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{ipa}{Col.rst}/) as '{g}'.{Col.rst}")
+            if ipa in cands: cands.remove(ipa)
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+
 def srcWrd(lngNm, args=None):
     clrScr()
     csvDat = ldCsv(lngNm)
@@ -1390,7 +1473,7 @@ def vwTree():
             prtTr(r)
             print()
             
-    input(f"{Col.prm}[Enter] to continue...{Col.rst}")
+    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
 def evlWrdTr(lngNm):
     clrScr()
@@ -1605,41 +1688,6 @@ def lonWrd(lngNm, args=None):
     print(f"\n{Col.ok}Added Loan: {Col.hdr}{lem}{Col.rst} (/{Col.ipa}{nIpa}{Col.rst}/) - {nGls}{Col.rst}")
     input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
 
-def vwCht(lngNm):
-    clrScr()
-    jf = os.path.join(dirNm, lngNm, f"{lngNm}.json")
-    if not os.path.exists(jf):
-        print(f"{Col.err}No orthography data found for {lngNm}. Please create an orthography first.{Col.rst}")
-        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
-        return
-        
-    with open(jf, "r", encoding="utf-8") as f:
-        ortDat = json.load(f)
-        
-    vBase = "aeiouyøœɒɔɛɪʊʌʏəɘɞɜɐɤɵɨʉɯæɑ"
-    vLst = []
-    cLst = []
-    
-    for ipa, ort in ortDat.items():
-        if any(v in ipa for v in vBase):
-            vLst.append((ipa, ort))
-        else:
-            cLst.append((ipa, ort))
-            
-    print(f"{Col.hdr}--- {lngNm} Orthography & IPA Chart ---{Col.rst}\n")
-    
-    print(f"{Col.hdr}Consonants:{Col.rst}")
-    print("-" * 30)
-    for ipa, ort in sorted(cLst, key=lambda x: x[0]):
-        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
-        
-    print(f"\n{Col.hdr}Vowels:{Col.rst}")
-    print("-" * 30)
-    for ipa, ort in sorted(vLst, key=lambda x: x[0]):
-        print(f" /{Col.ipa}{ipa:<5}{Col.rst}/ -> {Col.ok}{ort}{Col.rst}")
-        
-    input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
-
 def prtWrkHlp(has_lexifer):
     print(f"{Col.hdr}--- Workspace Commands ---{Col.rst}")
     print(f"  {Col.prm}/a, /add [ipa/cxs] [gloss] [pos]{Col.rst} : Add a new word (args optional)")
@@ -1647,6 +1695,7 @@ def prtWrkHlp(has_lexifer):
     if has_lexifer:
         print(f"  {Col.prm}/g, /gen, /generate{Col.rst} : Generate words with Lexifer")
     print(f"  {Col.prm}/town, /settle{Col.rst} : Generate town/settlement names")
+    print(f"  {Col.prm}/sw, /swadesh{Col.rst} : Check/Generate Swadesh 200 vocabulary")
     print(f"  {Col.prm}/e, /edit [query]{Col.rst} : Edit a word (leave blank to see newest)")
     print(f"  {Col.prm}/s, /search [query]{Col.rst} : Search words (leave blank to see newest)")
     print(f"  {Col.prm}/v, /view{Col.rst} : View full vocabulary")
@@ -1684,6 +1733,7 @@ def wrkSpc(lngNm):
         elif cmd in ['/lo', '/loan']: lonWrd(lngNm, args)
         elif cmd in ['/g', '/gen', '/generate'] and has_lexifer: genWrd(lngNm)
         elif cmd in ['/town', '/settle']: genStl(lngNm)
+        elif cmd in ['/sw', '/swadesh']: chkSwd(lngNm)
         elif cmd in ['/e', '/edit']: edtWrd(lngNm, args)
         elif cmd in ['/s', '/search']: srcWrd(lngNm, args)
         elif cmd in ['/v', '/view']: vwWrd(lngNm)
