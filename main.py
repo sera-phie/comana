@@ -1215,33 +1215,92 @@ def runLx(lngNm):
             f.write("# IPA\n" + lscTxt)
         print(f"{Col.ok}Converted .lsc file to IPA.{Col.rst}")
     
-    if input(f"{Col.prm}Apply changes to {lngNm}.csv? (y/n): {Col.rst}").strip().lower() == 'y':
-        csvDat = ldCsv(lngNm)
-        inpPth = os.path.join(dirNm, lngNm, "words.wli")
-        outPth = os.path.join(dirNm, lngNm, "words_ev.wli")
-        wlmPth = os.path.join(dirNm, lngNm, "words_ev.wlm")
-        
-        with open(inpPth, "w", encoding="utf-8") as f:
-            for r in csvDat: f.write(r["IPA"] + "\n")
+    while True:
+        ans = input(f"{Col.prm}Apply changes to {lngNm}.csv? (y: yes, n: no, p: preview): {Col.rst}").strip().lower()
+        if ans == 'y':
+            csvDat = ldCsv(lngNm)
+            inpPth = os.path.join(dirNm, lngNm, "words.wli")
+            outPth = os.path.join(dirNm, lngNm, "words_ev.wli")
+            wlmPth = os.path.join(dirNm, lngNm, "words_ev.wlm")
             
-        try:
-            lexExe = os.path.join("tools", "lexurgy", "bin", "lexurgy.bat" if os.name == "nt" else "lexurgy")
-            subprocess.run([lexExe, "sc", lsc, inpPth], check=True, capture_output=True, text=True)
-            with open(outPth, "r", encoding="utf-8") as f: mod = [l.strip() for l in f.readlines() if l.strip()]
-            for i, r in enumerate(csvDat):
-                if i < len(mod):
-                    r["IPA"] = mod[i]
-                    r["Lemma"] = getOrt(lngNm, mod[i])
-            svCsv(lngNm, csvDat)
-            print(f"{Col.ok}Sound changes applied.{Col.rst}")
-        except subprocess.CalledProcessError as e:
-            print(f"{Col.err}Lexurgy failed:\n{e.stderr}{Col.rst}")
-        except Exception as e: print(f"{Col.err}Lexurgy failed: {e}{Col.rst}")
-        finally:
-            if os.path.exists(inpPth): os.remove(inpPth)
-            if os.path.exists(outPth): os.remove(outPth)
-            if os.path.exists(wlmPth): os.remove(wlmPth)
-        input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            with open(inpPth, "w", encoding="utf-8") as f:
+                for r in csvDat: f.write(r["IPA"] + "\n")
+                
+            try:
+                lexExe = os.path.join("tools", "lexurgy", "bin", "lexurgy.bat" if os.name == "nt" else "lexurgy")
+                subprocess.run([lexExe, "sc", lsc, inpPth], check=True, capture_output=True, text=True)
+                with open(outPth, "r", encoding="utf-8") as f: mod = [l.strip() for l in f.readlines() if l.strip()]
+                for i, r in enumerate(csvDat):
+                    if i < len(mod):
+                        r["IPA"] = mod[i]
+                        r["Lemma"] = getOrt(lngNm, mod[i])
+                svCsv(lngNm, csvDat)
+                print(f"{Col.ok}Sound changes applied.{Col.rst}")
+            except subprocess.CalledProcessError as e:
+                msg = []
+                if e.stdout and e.stdout.strip():
+                    msg.append(f"Stdout:\n{e.stdout.strip()}")
+                if e.stderr and e.stderr.strip():
+                    msg.append(f"Stderr:\n{e.stderr.strip()}")
+                err_details = "\n\n".join(msg) if msg else "No output details available."
+                print(f"{Col.err}Lexurgy failed:\n{err_details}{Col.rst}")
+            except Exception as e: print(f"{Col.err}Lexurgy failed: {e}{Col.rst}")
+            finally:
+                if os.path.exists(inpPth): os.remove(inpPth)
+                if os.path.exists(outPth): os.remove(outPth)
+                if os.path.exists(wlmPth): os.remove(wlmPth)
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            break
+        elif ans == 'p':
+            csvDat = ldCsv(lngNm)
+            if not csvDat:
+                print(f"{Col.err}Vocabulary is empty. Nothing to preview.{Col.rst}")
+                continue
+            inpPth = os.path.join(dirNm, lngNm, "words.wli")
+            outPth = os.path.join(dirNm, lngNm, "words_ev.wli")
+            wlmPth = os.path.join(dirNm, lngNm, "words_ev.wlm")
+            
+            with open(inpPth, "w", encoding="utf-8") as f:
+                for r in csvDat: f.write(r["IPA"] + "\n")
+                
+            try:
+                lexExe = os.path.join("tools", "lexurgy", "bin", "lexurgy.bat" if os.name == "nt" else "lexurgy")
+                subprocess.run([lexExe, "sc", lsc, inpPth], check=True, capture_output=True, text=True)
+                with open(outPth, "r", encoding="utf-8") as f: mod = [l.strip() for l in f.readlines() if l.strip()]
+                
+                print(f"\n{Col.hdr}--- Preview of Lexurgy Sound Changes ---{Col.rst}")
+                changed_count = 0
+                for i, r in enumerate(csvDat):
+                    if i < len(mod):
+                        new_ipa = mod[i]
+                        new_lemma = getOrt(lngNm, new_ipa)
+                        if r["IPA"] != new_ipa or r["Lemma"] != new_lemma:
+                            print(f"  {Col.hdr}{r['Lemma']}{Col.rst} > {Col.ok}{new_lemma}{Col.rst} (/{Col.ipa}{r['IPA']}{Col.rst}/ > /{Col.ipa}{new_ipa}{Col.rst}/)")
+                            changed_count += 1
+                if changed_count == 0:
+                    print(f"  {Col.ok}No words in the vocabulary would change.{Col.rst}")
+                else:
+                    print(f"\nTotal changed: {Col.ok}{changed_count}{Col.rst} word(s).")
+                print()
+            except subprocess.CalledProcessError as e:
+                msg = []
+                if e.stdout and e.stdout.strip():
+                    msg.append(f"Stdout:\n{e.stdout.strip()}")
+                if e.stderr and e.stderr.strip():
+                    msg.append(f"Stderr:\n{e.stderr.strip()}")
+                err_details = "\n\n".join(msg) if msg else "No output details available."
+                print(f"{Col.err}Lexurgy failed:\n{err_details}{Col.rst}")
+            except Exception as e: print(f"{Col.err}Lexurgy failed: {e}{Col.rst}")
+            finally:
+                if os.path.exists(inpPth): os.remove(inpPth)
+                if os.path.exists(outPth): os.remove(outPth)
+                if os.path.exists(wlmPth): os.remove(wlmPth)
+        elif ans == 'n':
+            print(f"{Col.ok}Changes discarded.{Col.rst}")
+            input(f"\n{Col.prm}[Enter] to continue...{Col.rst}")
+            break
+        else:
+            print(f"{Col.err}Invalid choice. Please enter 'y', 'n', or 'p'.{Col.rst}")
 
 def getDaus(pNm):
     dLst = []
@@ -1269,7 +1328,13 @@ def applyLx(lngNm, ipaLst):
             for i in range(len(resLst)):
                 if i < len(mod): resLst[i] = mod[i]
     except subprocess.CalledProcessError as e: 
-        print(f"{Col.err}Lexurgy failed for {lngNm}:\n{e.stderr}{Col.rst}")
+        msg = []
+        if e.stdout and e.stdout.strip():
+            msg.append(f"Stdout:\n{e.stdout.strip()}")
+        if e.stderr and e.stderr.strip():
+            msg.append(f"Stderr:\n{e.stderr.strip()}")
+        err_details = "\n\n".join(msg) if msg else "No output details available."
+        print(f"{Col.err}Lexurgy failed for {lngNm}:\n{err_details}{Col.rst}")
     except Exception as e: 
         print(f"{Col.err}Lexurgy failed for {lngNm}: {e}{Col.rst}")
     finally:
