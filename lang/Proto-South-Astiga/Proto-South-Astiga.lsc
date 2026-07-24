@@ -13,5 +13,6 @@ c:
 	{ɾ̩, s̩, l̩, n̩} => {aɾ, as, al, an}
 	dʷ => d / @c _
 	then: {kʲ, tʲ, dʷ, gʷ, p, t, k} => {t, k, g, b, h, s, j} // _ @c
+	then: {dʷ, gʷ} => {g, b}
 	then: @c$1 ɾ => ɾ $1 / @v _ @v
-	ʋ => w
+	then: ʋ => w

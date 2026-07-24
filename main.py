@@ -163,6 +163,56 @@ swadeshLst = [
     "in", "with", "and", "if", "because"
 ]
 
+swadeshPos = {
+    "I": "pron", "you": "pron", "we": "pron", "this": "pron", "that": "pron",
+    "who": "pron", "what": "pron",
+    "not": "adv",
+    "all": "adj", "many": "adj",
+    "one": "num", "two": "num", "three": "num", "four": "num", "five": "num",
+    "big": "adj", "long": "adj", "small": "adj",
+    "hot": "adj", "cold": "adj", "full": "adj", "new": "adj",
+    "good": "adj", "bad": "adj", "round": "adj", "dry": "adj",
+    "warm": "adj", "old": "adj", "rotten": "adj", "dirty": "adj",
+    "straight": "adj", "sharp": "adj", "dull": "adj", "smooth": "adj",
+    "wet": "adj", "correct": "adj", "near": "adj", "far": "adj",
+    "red": "adj", "green": "adj", "yellow": "adj", "white": "adj", "black": "adj",
+    "right": "adj", "left": "adj",
+    "woman": "n", "man": "n", "person": "n", "child": "n",
+    "husband": "n", "wife": "n", "mother": "n", "father": "n",
+    "animal": "n", "fish": "n", "bird": "n", "dog": "n", "louse": "n",
+    "snake": "n", "worm": "n",
+    "tree": "n", "seed": "n", "leaf": "n", "root": "n", "bark": "n",
+    "fruit": "n", "grass": "n",
+    "skin": "n", "flesh": "n", "blood": "n", "bone": "n", "grease": "n",
+    "egg": "n", "horn": "n", "tail": "n", "feather": "n",
+    "hair": "n", "head": "n", "ear": "n", "eye": "n", "nose": "n",
+    "mouth": "n", "tooth": "n", "tongue": "n", "fingernail": "n",
+    "foot": "n", "knee": "n", "hand": "n", "belly": "n", "neck": "n",
+    "breasts": "n", "heart": "n", "liver": "n", "leg": "n", "claw": "n",
+    "sun": "n", "moon": "n", "star": "n", "water": "n", "rain": "n",
+    "stone": "n", "sand": "n", "earth": "n", "cloud": "n",
+    "smoke": "n", "fire": "n", "ashes": "n", "path": "n", "mountain": "n",
+    "night": "n", "name": "n",
+    "river": "n", "lake": "n", "sea": "n", "dust": "n", "fog": "n",
+    "sky": "n", "wind": "n", "snow": "n", "ice": "n", "road": "n",
+    "day": "n", "year": "n",
+    "rope": "n", "salt": "n",
+    "drink": "v", "eat": "v", "bite": "v", "see": "v", "hear": "v",
+    "know": "v", "sleep": "v", "die": "v", "kill": "v", "swim": "v",
+    "fly": "v", "walk": "v", "come": "v", "lie": "v", "sit": "v",
+    "stand": "v", "give": "v", "say": "v", "burn": "v",
+    "suck": "v", "spit": "v", "vomit": "v", "blow": "v", "breathe": "v",
+    "laugh": "v", "think": "v", "smell": "v", "fear": "v", "live": "v",
+    "fight": "v", "hunt": "v", "hit": "v", "cut": "v", "split": "v",
+    "stab": "v", "scratch": "v", "dig": "v", "turn": "v", "fall": "v",
+    "hold": "v", "squeeze": "v", "rub": "v", "wash": "v", "wipe": "v",
+    "pull": "v", "push": "v", "throw": "v", "tie": "v", "sew": "v",
+    "sing": "v", "play": "v", "float": "v", "flow": "v", "freeze": "v",
+    "swell": "v",
+    "at": "prep", "in": "prep", "with": "prep",
+    "and": "conj", "if": "conj", "because": "conj",
+}
+
 def clrScr():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -256,8 +306,10 @@ def mkLng(lngNm=None):
             csv.writer(f).writerow(hdrLst)
     return lngNm
 
-def ldCsv(lngNm):
-    with open(os.path.join(dirNm, lngNm, f"{lngNm}.csv"), "r", encoding="utf-8") as f:
+def ldCsv(lngNm, pth=None):
+    if pth is None:
+        pth = os.path.join(dirNm, lngNm, f"{lngNm}.csv")
+    with open(pth, "r", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 def svCsv(lngNm, csvDat):
@@ -1027,8 +1079,12 @@ def chkSwd(lngNm):
             if cfgDat.get("cxs", False): ipa = cvCxs(ipa)
             lem = getOrt(lngNm, ipa)
             
+            sugPos = swadeshPos.get(g, "?")
+            pos = input(f"{Col.prm}PoS [{sugPos}]: {Col.rst}").strip()
+            if not pos: pos = sugPos
+            
             csvDat.append({
-                "Lemma": lem, "Gloss": g, "IPA": ipa, "PoS": "swadesh",
+                "Lemma": lem, "Gloss": g, "IPA": ipa, "PoS": pos,
                 "Etymology": "", "Notes": "Swadesh List Vocab",
                 "Tags": "swadesh", "Related Words": ""
             })
@@ -1218,7 +1274,18 @@ def runLx(lngNm):
     while True:
         ans = input(f"{Col.prm}Apply changes to {lngNm}.csv? (y: yes, n: no, p: preview): {Col.rst}").strip().lower()
         if ans == 'y':
-            csvDat = ldCsv(lngNm)
+            origPth = os.path.join(dirNm, lngNm, f"{lngNm}_orig.csv")
+            curCsv = ldCsv(lngNm)
+            useBackup = os.path.exists(origPth)
+            
+            if useBackup:
+                csvDat = ldCsv(lngNm, origPth)
+                extraWords = [r for r in curCsv
+                              if not r.get("Etymology", "").startswith("Derived from")]
+            else:
+                csvDat = curCsv
+                extraWords = []
+            
             inpPth = os.path.join(dirNm, lngNm, "words.wli")
             outPth = os.path.join(dirNm, lngNm, "words_ev.wli")
             wlmPth = os.path.join(dirNm, lngNm, "words_ev.wlm")
@@ -1234,8 +1301,11 @@ def runLx(lngNm):
                     if i < len(mod):
                         r["IPA"] = mod[i]
                         r["Lemma"] = getOrt(lngNm, mod[i])
+                if extraWords:
+                    csvDat.extend(extraWords)
                 svCsv(lngNm, csvDat)
-                print(f"{Col.ok}Sound changes applied.{Col.rst}")
+                tag = f" (from {Col.ok}original etyma{Col.rst})" if useBackup else ""
+                print(f"{Col.ok}Sound changes applied{tag}.{Col.rst}")
             except subprocess.CalledProcessError as e:
                 msg = []
                 if e.stdout and e.stdout.strip():
@@ -1452,6 +1522,8 @@ def mkDau(pNm):
             r["Etymology"] = nwEty
         r["Lemma"] = getOrt(dNm, r["IPA"])
     svCsv(dNm, pDat)
+    bakPth = os.path.join(dirNm, dNm, f"{dNm}_orig.csv")
+    shutil.copy(os.path.join(dirNm, dNm, f"{dNm}.csv"), bakPth)
     print(f"{Col.ok}Created daughter: {dNm}{Col.rst}")
     if input(f"{Col.prm}Setup sound changes for {dNm}? (y/n): {Col.rst}").strip().lower() == 'y': runLx(dNm)
 
@@ -1578,16 +1650,18 @@ def evlWrdTr(lngNm):
     
     def prtWrdTr(nLng, nIpa, pref="", isLst=True):
         nOrt = getOrt(nLng, nIpa)
-        dispStr = f"{nOrt}"
+        isProto = nLng.lower().startswith("proto-")
+        protoMark = f"{Col.ipa}*{Col.rst}" if isProto else ""
+        dispStr = f"{Col.prm}{nLng}{Col.rst}: {protoMark}{Col.hdr}{nOrt}{Col.rst}"
         if showIpa:
             dispStr += f" /{Col.ipa}{nIpa}{Col.rst}/"
 
         if pref == "":
-            print(f"{Col.hdr}*{dispStr}{Col.rst}")
+            print(f"  {dispStr}")
             cPref = "    "
         else:
             mkr = "└── " if isLst else "├── "
-            print(f"{pref}{mkr}{Col.hdr}{dispStr}{Col.rst}")
+            print(f"{pref}{mkr}{dispStr}")
             cPref = pref + ("    " if isLst else "│   ")
             
         daus = getDaus(nLng)
