@@ -1,0 +1,31 @@
+# IPA
+Class c {g, ɾ, b, j, jʲ, p, m, l, d, k, s, n, t, h, w}
+Class v {e, i, y, a, u, o}
+
+v:
+    {ia, iu, ie, io, ea} => {iː, yː, eː, aː, aː}
+    o => a / w _
+    o => a / _ w
+    then: @v$1 j => $1 i // _ @v
+    then: ii => iː
+
+c:
+    h => *
+    {jʲ, iʲ} => j // _ @c
+    {jʲ, iʲ} => i / @v _
+    @c$1 s => s $1
+    then: s => ɕ / {ɾ, l, j, u, i, k, y, yː, uː, iː} _
+    then: s => ɕ / _ {ɾ, l, j, u, i, k, y, yː, uː, iː}
+    then: {sɕ, ss, ɕs} => ɕ
+    then: (
+        {eo, uo, aa, ou, eu} => {au, uː, ei, au, au}
+        wyː => wiː
+        ɕd => ʑ
+        o => a / _ @c @c? $
+        w => * / @c _
+        w => * / _ @c
+        uyː => wiː
+        then: {nn, ll} => {dn, dl}
+        @c$1 l => l $1
+        sd => z
+    )
