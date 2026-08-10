@@ -1,0 +1,9 @@
+C = p:1 t:1 k:1 b:1 d:1 ɡ:1 ɾ:1 l:1 s:1 z:1 n:1 m:1 w:1 t͡ʃ:1 ʃ:1 d͡ʒ:1 ʒ:1 v:1 j:1 ɲ:1 f:1 h:1
+V = a:10 ɛ:10 e:10 i:10 ɔ:10 u:10 ɑ̃:2 ɛ̃:2 ɔ̃:2 ũ:2
+S = s:1 l:1
+
+random-rate: 50
+
+words: C?V C?VS?CV C?VS?CVCV C?VCVS?CV
+
+filter: wu > u; uw > u; awa > wa;
