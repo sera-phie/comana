@@ -1,0 +1,57 @@
+# IPA
+Class c {kʲ, h, d͡, m, n, dʲ, sʲ, z, j, s, p, gʲ, t, w, t͡, ɾ, g, k, l, d, tʲ}
+Class v {a, u, ɔ, ə, iː, i, ɛ, ɯ}
+
+v:
+    ə => * / m _ $
+    then: ə => ɛ
+    u => i / {t͡s, d͡z} _
+    aja => aɛ
+    then: aɛ => ɛ / _ {m, n}
+    i => ʲ / @c _ @v
+
+c:
+	l => ɾ
+	m => n / _ $
+	{t͡s, d͡z} => {t͡ɕ, d͡ʑ}
+	{sʲ, dʲ, tʲ} => {ʃ, d͡ʒ, t͡ʃ}
+	then: {ʃ, d͡ʒ, t͡ʃ} => {ɕ, d͡ʑ, t͡ɕ} / _ {u, i}
+	then: u => ɯ
+	then: (
+		{t, d} => {t͡s, z} / _ ɯ
+		{t, d} => {t͡ɕ, d͡ʑ} / _ i
+		then: {ɕ, t͡ɕ, d͡ʑ} => {ʃ, t͡ʃ, d͡ʒ} / _ {a, ɔ}
+		n => i / _ {b, d, g, z}
+		{np, mp, nt, nk, ns} => {b, b, d, g, z}
+		{p, t, k, s} => {b, d, g, z} / nn @v _
+		nɯ => n / _ @c
+		{s, z} => {ɕ, d͡ʑ} / _ i
+		@v$1 $1 => $1 ː
+		@v => i / {ɯ, ɛ} _
+		ji => i
+		w => * // _ a
+		then: w => * / i _ a
+		ɕi => ʃ / _ @v
+		then: (
+			{pɯ, pi, t͡sɯ, t͡ɕi} t => * tː / @v _ @v
+			{kɯ, ki, t͡ɕi} k => * kː / @v _ @v
+			{pɯ, pi, t͡sɯ, t͡ɕi} p => * pː / @v _ @v
+			{pɯ, pi, t͡sɯ, t͡ɕi} {d͡ʑ, d͡ʒ, t͡ɕ, t͡ʃ} => * {d͡ʑː, d͡ʒː, t͡ɕː, t͡ʃː} / @v _ @v
+			ɾɯ {p, b, t, d, k, g} => * {pː, pː, tː, tː, kː, kː}
+			d͡ʃ => d͡ʒ
+			then: {h, p} => {*, h} // _ ː
+			then: h => ɸ / _ ɯ
+			then: (
+				{aɯ, iɯ, ɔɯ} => {ɔː, ɯː, ɔː}
+				aa => ɔː
+				i => j / _ @v
+				ɯwa => ɯi
+				then: ɕj => ʃ
+				n @c$1 => n i $1 / $ _
+				then: (
+					tː͡ʑ => d͡ʑː
+					tː͡ɕ => t͡ɕː
+				)
+			)
+		)
+	)
