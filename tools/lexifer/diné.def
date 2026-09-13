@@ -1,0 +1,6 @@
+C = p:1 t:1 c:1 b:1 d:1 g:1 m:1 n:1 s:1 z:1 l:1 r:1 y:1 ch:1 j:1
+V = a:10 é:3 e:10 i:10 o:10 u:10 an:3 en:3 on:3
+
+random-rate: 50
+
+words: C?VV? C?VCVV? C?VV?CVV? C?VCVCVV? C?VV?CVCV C?VCVV?CV

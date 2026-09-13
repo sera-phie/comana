@@ -1,0 +1,16 @@
+[91mLexifer Error:
+Traceback (most recent call last):
+  File "/home/eveliese/comana/tools/lexifer/lexifer.py", line 64, in <module>
+    print(textify(pd.soundsys, 25), file=utf8stdout)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/eveliese/comana/tools/lexifer/wordgen.py", line 248, in textify
+    text += phsys.generate(1, unsorted=True)[0].capitalize()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/eveliese/comana/tools/lexifer/wordgen.py", line 227, in generate
+    word = self.apply_filters(self.run_rule(rule))
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/home/eveliese/comana/tools/lexifer/wordgen.py", line 145, in run_rule
+    n = len(rule)
+        ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+[0m
